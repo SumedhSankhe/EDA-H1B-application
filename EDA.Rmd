@@ -1,0 +1,1035 @@
+---
+title: "Untitled"
+author: "Sumedh R. Sankhe"
+date: "April 6, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60),
+                      echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+rm(list = ls())
+library(readr)
+library(readxl)
+library(dplyr)
+library(stringr)
+library(gdata)
+library(RSQLite)
+library(tidyr)
+library(ggplot2)
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE}
+Y17 <- read_excel("~/Documents/Northeastern_University/DA5020_Collecting_Storing_Retreiving/Project/xlsx/H-1B_Disclosure_Data_FY17_Q1.xlsx")
+Y16 <- read_csv("~/Documents/Northeastern_University/DA5020_Collecting_Storing_Retreiving/Project/xlsx/H-1B_Disclosure_Data_FY16.xlsx")
+Y15 <- read_csv("~/Documents/Northeastern_University/DA5020_Collecting_Storing_Retreiving/Project/xlsx/H-1B_Disclosure_Data_FY15_Q4_df.csv")
+Y14 <- read_csv("~/Documents/Northeastern_University/DA5020_Collecting_Storing_Retreiving/Project/xlsx/H-1B_FY14_Q4.csv")
+Y13 <- read_csv("~/Documents/Northeastern_University/DA5020_Collecting_Storing_Retreiving/Project/xlsx/LCA_FY2013.csv")
+# colnames(Y17)
+```
+
+
+
+# Standardizing the data
+
+The columns name have slight variations for the last four year, except for the year 2013 which has has lot of changes to the column names, also the order of the columns changes year to year, hence before combining them to one data-frame I decided to standardize the column names and roughly decide on the columns of interest. The columns of interest may increase or decrease as I proceed ahead with the data exploration.
+
+```{r}
+#need a better way to clean them
+df17 <- data.frame(subset(Y17, select = c(CASE_NUMBER,
+                                          CASE_STATUS,
+                                          CASE_SUBMITTED,
+                                          DECISION_DATE,
+                                          EMPLOYER_NAME,
+                                          EMPLOYER_ADDRESS,
+                                          EMPLOYER_CITY,
+                                          EMPLOYER_STATE,
+                                          EMPLOYER_POSTAL_CODE,
+                                          JOB_TITLE,
+                                          SOC_CODE,
+                                          SOC_NAME,
+                                          NAICS_CODE,
+                                          FULL_TIME_POSITION,
+                                          PREVAILING_WAGE,
+                                          PW_UNIT_OF_PAY,
+                                          WAGE_RATE_OF_PAY_FROM,
+                                          WAGE_RATE_OF_PAY_TO,
+                                          WAGE_UNIT_OF_PAY,
+                                          WORKSITE_CITY,
+                                          WORKSITE_STATE)
+                          )
+                   )
+
+rm(Y17)
+df17$Year <- 2017
+
+df16 <- data.frame(subset(Y16, select = c(CASE_NUMBER,
+                                          CASE_STATUS,
+                                          CASE_SUBMITTED,
+                                          DECISION_DATE,
+                                          EMPLOYER_NAME,
+                                          EMPLOYER_ADDRESS,
+                                          EMPLOYER_CITY,
+                                          EMPLOYER_STATE,
+                                          EMPLOYER_POSTAL_CODE,
+                                          JOB_TITLE,
+                                          SOC_CODE,
+                                          SOC_NAME,
+                                          NAIC_CODE,
+                                          FULL_TIME_POSITION,
+                                          PREVAILING_WAGE,
+                                          PW_UNIT_OF_PAY,
+                                          WAGE_RATE_OF_PAY_FROM,
+                                          WAGE_RATE_OF_PAY_TO,
+                                          WAGE_UNIT_OF_PAY,
+                                          WORKSITE_CITY,
+                                          WORKSITE_STATE)
+                         )
+                  )
+
+rm(Y16)
+
+colnames(df16) <- c('CASE_NUMBER',
+                    'CASE_STATUS',
+                    'CASE_SUBMITTED',
+                    'DECISION_DATE',
+                    'EMPLOYER_NAME',
+                    'EMPLOYER_ADDRESS',
+                    'EMPLOYER_CITY',
+                    'EMPLOYER_STATE',
+                    'EMPLOYER_POSTAL_CODE',
+                    'JOB_TITLE',
+                    'SOC_CODE',
+                    'SOC_NAME',
+                    'NAICS_CODE',
+                    'FULL_TIME_POSITION',
+                    'PREVAILING_WAGE',
+                    'PW_UNIT_OF_PAY',
+                    'WAGE_RATE_OF_PAY_FROM',
+                    'WAGE_RATE_OF_PAY_TO',
+                    'WAGE_UNIT_OF_PAY',
+                    'WORKSITE_CITY',
+                    'WORKSITE_STATE')
+
+df16$Year <- 2016
+
+df15 <- data.frame(subset(Y15, select = c(CASE_NUMBER,
+                                          CASE_STATUS,
+                                          CASE_SUBMITTED,
+                                          DECISION_DATE,
+                                          EMPLOYER_NAME,
+                                          EMPLOYER_ADDRESS1,
+                                          EMPLOYER_CITY,
+                                          EMPLOYER_STATE,
+                                          EMPLOYER_POSTAL_CODE,
+                                          JOB_TITLE,
+                                          SOC_CODE,
+                                          SOC_NAME,
+                                          NAIC_CODE,
+                                          FULL_TIME_POSITION,
+                                          PREVAILING_WAGE,
+                                          PW_UNIT_OF_PAY,
+                                          WAGE_RATE_OF_PAY,
+                                          WAGE_UNIT_OF_PAY,
+                                          WORKSITE_CITY,
+                                          WORKSITE_STATE)
+                         )
+                  )
+
+split1 <- as.data.frame(str_split_fixed(df15$WAGE_RATE_OF_PAY, " -", 2))
+df15 <- cbind(df15,split1)
+df15 <- df15[-c(17)]
+colnames(df15) <-c('CASE_NUMBER',
+                   'CASE_STATUS',
+                   'CASE_SUBMITTED',
+                   'DECISION_DATE',
+                   'EMPLOYER_NAME',
+                   'EMPLOYER_ADDRESS',
+                   'EMPLOYER_CITY',
+                   'EMPLOYER_STATE',
+                   'EMPLOYER_POSTAL_CODE',
+                   'JOB_TITLE',
+                   'SOC_CODE',
+                   'SOC_NAME',
+                   'NAICS_CODE',
+                   'FULL_TIME_POSITION',
+                   'PREVAILING_WAGE',
+                   'PW_UNIT_OF_PAY',
+                   'WAGE_UNIT_OF_PAY',
+                   'WORKSITE_CITY',
+                   'WORKSITE_STATE',
+                   'WAGE_RATE_OF_PAY_FROM',
+                   'WAGE_RATE_OF_PAY_TO')
+
+rm(Y15)
+df15$Year <- 2015
+
+df14 <- data.frame(subset(Y14,select = c(LCA_CASE_NUMBER,
+                                         STATUS,
+                                         LCA_CASE_SUBMIT,
+                                         DECISION_DATE,
+                                         LCA_CASE_EMPLOYER_NAME,
+                                         LCA_CASE_EMPLOYER_ADDRESS,
+                                         LCA_CASE_EMPLOYER_CITY,
+                                         LCA_CASE_EMPLOYER_STATE,
+                                         LCA_CASE_EMPLOYER_POSTAL_CODE,
+                                         LCA_CASE_SOC_CODE,
+                                         LCA_CASE_SOC_NAME,
+                                         LCA_CASE_JOB_TITLE,
+                                         LCA_CASE_WAGE_RATE_FROM,
+                                         LCA_CASE_WAGE_RATE_TO,
+                                         LCA_CASE_WAGE_RATE_UNIT,
+                                         FULL_TIME_POS,
+                                         LCA_CASE_WORKLOC1_CITY,
+                                         LCA_CASE_WORKLOC1_STATE,
+                                         PW_1,
+                                         PW_UNIT_1,
+                                         LCA_CASE_NAICS_CODE)
+                          )
+                   )
+
+rm(Y14)
+
+colnames(df14) <- c('CASE_NUMBER',
+                    'CASE_STATUS',
+                    'CASE_SUBMITTED',
+                    'DECISION_DATE',
+                    'EMPLOYER_NAME',
+                    'EMPLOYER_ADDRESS',
+                    'EMPLOYER_CITY',
+                    'EMPLOYER_STATE',
+                    'EMPLOYER_POSTAL_CODE',
+                    'SOC_CODE',
+                    'SOC_NAME',
+                    'JOB_TITLE',
+                    'WAGE_RATE_OF_PAY_FROM',
+                    'WAGE_RATE_OF_PAY_TO',
+                    'WAGE_UNIT_OF_PAY',
+                    'FULL_TIME_POSITION',
+                    'WORKSITE_CITY',
+                    'WORKSITE_STATE',
+                    'PREVAILING_WAGE',
+                    'PW_UNIT_OF_PAY',
+                    'NAICS_CODE')
+
+df14$Year <- 2014
+
+df13 <- data.frame(subset(Y13,select = c(LCA_CASE_NUMBER,
+                                         STATUS,
+                                         LCA_CASE_SUBMIT,
+                                         Decision_Date,
+                                         LCA_CASE_EMPLOYER_NAME,
+                                         LCA_CASE_EMPLOYER_ADDRESS,
+                                         LCA_CASE_EMPLOYER_CITY,
+                                         LCA_CASE_EMPLOYER_STATE,
+                                         LCA_CASE_EMPLOYER_POSTAL_CODE,
+                                         LCA_CASE_SOC_CODE,
+                                         LCA_CASE_SOC_NAME,
+                                         LCA_CASE_JOB_TITLE,
+                                         LCA_CASE_WAGE_RATE_FROM,
+                                         LCA_CASE_WAGE_RATE_TO,
+                                         LCA_CASE_WAGE_RATE_UNIT,
+                                         FULL_TIME_POS,
+                                         LCA_CASE_WORKLOC1_CITY,
+                                         LCA_CASE_WORKLOC1_STATE,
+                                         PW_1,
+                                         PW_UNIT_1,
+                                         LCA_CASE_NAICS_CODE)
+                          )
+                   )
+
+rm(Y13)
+
+colnames(df13) <- c('CASE_NUMBER',
+                    'CASE_STATUS',
+                    'CASE_SUBMITTED',
+                    'DECISION_DATE',
+                    'EMPLOYER_NAME',
+                    'EMPLOYER_ADDRESS',
+                    'EMPLOYER_CITY',
+                    'EMPLOYER_STATE',
+                    'EMPLOYER_POSTAL_CODE',
+                    'SOC_CODE',
+                    'SOC_NAME',
+                    'JOB_TITLE',
+                    'WAGE_RATE_OF_PAY_FROM',
+                    'WAGE_RATE_OF_PAY_TO',
+                    'WAGE_UNIT_OF_PAY',
+                    'FULL_TIME_POSITION',
+                    'WORKSITE_CITY',
+                    'WORKSITE_STATE',
+                    'PREVAILING_WAGE',
+                    'PW_UNIT_OF_PAY',
+                    'NAICS_CODE')
+
+df13$Year <- 2013
+```
+
+  
+Sorting the data frame to the required column order and combining them to a single data frame and writing it to a .csv file for further use.
+
+```{r, Sort/Combine/Write}
+
+df13 <- df13 %>% select(CASE_NUMBER,
+                        CASE_STATUS,
+                        CASE_SUBMITTED,
+                        DECISION_DATE,
+                        EMPLOYER_NAME,
+                        EMPLOYER_ADDRESS,
+                        EMPLOYER_CITY,
+                        EMPLOYER_STATE,
+                        EMPLOYER_POSTAL_CODE,
+                        JOB_TITLE,
+                        SOC_CODE,
+                        SOC_NAME,
+                        NAICS_CODE,
+                        FULL_TIME_POSITION,
+                        PREVAILING_WAGE,
+                        PW_UNIT_OF_PAY,
+                        WAGE_RATE_OF_PAY_FROM,
+                        WAGE_RATE_OF_PAY_TO,
+                        WAGE_UNIT_OF_PAY,
+                        WORKSITE_CITY,
+                        WORKSITE_STATE,
+                        Year)
+
+
+
+df14 <- df14 %>% select(CASE_NUMBER,
+                        CASE_STATUS,
+                        CASE_SUBMITTED,
+                        DECISION_DATE,
+                        EMPLOYER_NAME,
+                        EMPLOYER_ADDRESS,
+                        EMPLOYER_CITY,
+                        EMPLOYER_STATE,
+                        EMPLOYER_POSTAL_CODE,
+                        JOB_TITLE,
+                        SOC_CODE,
+                        SOC_NAME,
+                        NAICS_CODE,
+                        FULL_TIME_POSITION,
+                        PREVAILING_WAGE,
+                        PW_UNIT_OF_PAY,
+                        WAGE_RATE_OF_PAY_FROM,
+                        WAGE_RATE_OF_PAY_TO,
+                        WAGE_UNIT_OF_PAY,
+                        WORKSITE_CITY,
+                        WORKSITE_STATE,
+                        Year)
+
+
+df15 <- df15 %>% select(CASE_NUMBER,
+                        CASE_STATUS,
+                        CASE_SUBMITTED,
+                        DECISION_DATE,
+                        EMPLOYER_NAME,
+                        EMPLOYER_ADDRESS,
+                        EMPLOYER_CITY,
+                        EMPLOYER_STATE,
+                        EMPLOYER_POSTAL_CODE,
+                        JOB_TITLE,
+                        SOC_CODE,
+                        SOC_NAME,
+                        NAICS_CODE,
+                        FULL_TIME_POSITION,
+                        PREVAILING_WAGE,
+                        PW_UNIT_OF_PAY,
+                        WAGE_RATE_OF_PAY_FROM,
+                        WAGE_RATE_OF_PAY_TO,
+                        WAGE_UNIT_OF_PAY,
+                        WORKSITE_CITY,
+                        WORKSITE_STATE,
+                        Year)
+
+df16 <- df16 %>% select(CASE_NUMBER,
+                        CASE_STATUS,
+                        CASE_SUBMITTED,
+                        DECISION_DATE,
+                        EMPLOYER_NAME,
+                        EMPLOYER_ADDRESS,
+                        EMPLOYER_CITY,
+                        EMPLOYER_STATE,
+                        EMPLOYER_POSTAL_CODE,
+                        JOB_TITLE,
+                        SOC_CODE,
+                        SOC_NAME,
+                        NAICS_CODE,
+                        FULL_TIME_POSITION,
+                        PREVAILING_WAGE,
+                        PW_UNIT_OF_PAY,
+                        WAGE_RATE_OF_PAY_FROM,
+                        WAGE_RATE_OF_PAY_TO,
+                        WAGE_UNIT_OF_PAY,
+                        WORKSITE_CITY,
+                        WORKSITE_STATE,
+                        Year)
+
+
+H1bdf <- rbind.data.frame(df13,df14,df15,df16,df17, stringAsFactors = FALSE)
+write.csv(H1bdf,"C:\\Users\\Sumedh\\Documents\\Northeastern_University\\DA5020\\Project\\H1b_df.csv")
+rm(df13,df14,df15,df16,df17,split1)
+```
+
+# Data Cleaning
+
+After checking the data it is found that there are a variety of scales on which salaries are paid, hence converting to a standard yearly pattern using the following function.
+
+```{r, Converting to Yearly Wage}
+# The function computes the corresponding annual wage.
+# Input     : Prevailing wage of a position and the current unit of pay
+# Returns   : The correponding wage of that position annually
+#
+PW_YEARLY <- function(PREVAILING_WAGE, PW_UNIT_OF_PAY) {
+  return(ifelse(PW_UNIT_OF_PAY == "Year",
+                PREVAILING_WAGE,
+                ifelse(PW_UNIT_OF_PAY == "Hour",
+                       2080*PREVAILING_WAGE,
+                       ifelse(PW_UNIT_OF_PAY == "Week",
+                              52*PREVAILING_WAGE,
+                              ifelse(PW_UNIT_OF_PAY == "Month",
+                                     12*PREVAILING_WAGE,
+                                     26*PREVAILING_WAGE)
+                              )
+                       )
+                )
+         )
+}
+
+
+H1b_df <- H1bdf %>%
+  filter(!is.na(PW_UNIT_OF_PAY)) %>%
+  mutate(PREVAILING_WAGE = as.numeric(PREVAILING_WAGE)) %>%
+  mutate(PREVAILING_WAGE =  PW_YEARLY(PREVAILING_WAGE, PW_UNIT_OF_PAY)) %>%
+  select(- c(PW_UNIT_OF_PAY,WAGE_UNIT_OF_PAY))
+rm(H1bdf)
+```
+
+Checking the frequencies
+```{r}
+H1b_df %>%
+  select(EMPLOYER_CITY) %>%
+  table() %>%
+  data.frame() -> employer.city.occurence
+nrow(employer.city.occurence)
+
+
+H1b_df %>%
+  select(WORKSITE_CITY) %>%
+  table()%>%
+  data.frame() -> worksite.city.occurence
+nrow(worksite.city.occurence)
+
+H1b_df %>%
+  select(EMPLOYER_NAME) %>%
+  table() %>%
+  data.frame() -> employer.name
+```
+
+
+```{r,echo=FALSE,warning=FALSE,}
+#need to convert into function
+H1b_df$EMPLOYER_NAME <-
+  trim(
+    toupper(
+      str_replace_all(H1b_df$EMPLOYER_NAME,"[[:punct:]]", "")
+      )
+    )
+
+H1b_df$EMPLOYER_ADDRESS <-
+  trim(
+    toupper(
+      str_replace_all(H1b_df$EMPLOYER_ADDRESS,"[[:punct:]]", "")
+      )
+    )
+
+H1b_df$SOC_NAME <-
+  trim(
+    toupper(
+      str_replace_all(H1b_df$SOC_NAME,"[[:punct:]]", "")
+      )
+    )
+
+H1b_df$EMPLOYER_CITY <-
+  trim(
+    toupper(
+     str_replace_all(H1b_df$EMPLOYER_CITY,"[[:punct:]]","")
+    )
+  )
+  
+
+H1b_df$WORKSITE_CITY <-
+  trim(
+    toupper(
+      str_replace_all(H1b_df$WORKSITE_CITY,"[[:punct:]]","")
+    )
+  )
+
+H1b_df$JOB_TITLE <-
+  trim(
+    toupper(
+      str_replace_all(H1b_df$JOB_TITLE,"[[:punct:]]","")
+    )
+  )
+```
+
+
+```{r,echo=FALSE,warning=FALSE, Data correction}
+H1b_df$SOC_CODE <- gsub("\\.[0-9]*$","",H1b_df$SOC_CODE)
+H1b_df$EMPLOYER_POSTAL_CODE <- gsub("\\-[0-9]*$","",H1b_df$EMPLOYER_POSTAL_CODE)
+H1b_df <- subset(H1b_df, nchar(as.character(H1b_df$SOC_CODE)) == 7)
+H1b_df$EMPLOYER_CITY <- gsub("[0-9]",NA,H1b_df$EMPLOYER_CITY)
+H1b_df$WORKSITE_CITY <- gsub("[0-9]",NA,H1b_df$WORKSITE_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("[`,.#$/]","", H1b_df$EMPLOYER_CITY)
+H1b_df$WORKSITE_CITY <- gsub("[`,.#$/]","", H1b_df$WORKSITE_CITY)
+H1b_df$WORKSITE_CITY <- gsub("<U+FFFD>","",H1b_df$WORKSITE_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("BIRINGHAM","BIRMINGHAM",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("HUNSTVILLE","HUNTSVILLE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("MONGOMERY","MONTGOMERY",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("MONTOGOMERY","MONTGOMERY",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("PRATVILLE","PRATTVILLE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("BENTONILLE","BENTONVILLE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALBERQUERQUE","ALBUQUERQUE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALBUQERQUE","ALBUQUERQUE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALBUQUERQUQE","ALBUQUERQUE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALBUQUERQUQE","ALBUQUEREQUE",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALPAHARETTA","ALPHARETTA",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALPHRETTA","ALPHARETTA",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("APHARETTA","ALPHARETTA",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("APLHARETTA","ALPHARETTA",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALTAMONTE SPINGS","ALTAMONTE SPRINGS",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ALTAMONTE SPINGS","ALTAMONTE SPRINGS",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("HILL$","HILLS",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("HILLLS$","HILLS",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ANN HARBOR","ANN ARBOR",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("ARLIGTON","ARLINGTON",H1b_df$EMPLOYER_CITY)
+H1b_df$EMPLOYER_CITY <- gsub("CYNWYND","CYNWYD",H1b_df$EMPLOYER_CITY)
+H1b_df$FULL_TIME_POSITION[is.na(H1b_df$FULL_TIME_POSITION)] <- "UNKNOWN"
+H1b_df$EMPLOYER_CITY[is.na(H1b_df$EMPLOYER_CITY)] <-"UNKNOWN"
+H1b_df$EMPLOYER_STATE[is.na(H1b_df$EMPLOYER_STATE)] <-"UNKNOWN"
+H1b_df$WORKSITE_CITY[is.na(H1b_df$WORKSITE_CITY)] <-"UNKNOWN"
+H1b_df$WORKSITE_STATE[is.na(H1b_df$WORKSITE_STATE)] <-"UNKNOWN"
+
+H1b_df %>%
+  select(EMPLOYER_CITY) %>%
+  table() %>%
+  data.frame() -> employer.city.occurence
+nrow(employer.city.occurence)
+
+H1b_df %>%
+  select(WORKSITE_CITY) %>%
+  table()%>%
+  data.frame() -> worksite.city.occurence
+nrow(worksite.city.occurence)
+
+# Thus from the previous result we can see that there is  sizeable change in the number of unique cities in both the Employer and Worksite columns is noticied of around 350 in the employer and 1500 in worksite columns.
+
+rm(employer.city.occurence,worksite.city.occurence,employer.name)
+# write.csv(H1b_df,"~/Documents/Northeastern_University/DA5020/Project/H1b_df_new.csv" )
+```
+
+
+```{r, echo=FALSE}
+# H1b_df <- read.csv("~/Documents/Northeastern_University/DA5020/Project/H1b_df_new.csv", stringsAsFactors = FALSE)
+# H1b_df<- H1b_df[-c(1)]
+mydb <- dbConnect(SQLite(), dbname = "H1b")
+dbSendQuery(conn = mydb, "pragma foreign_keys=on;")
+```
+
+
+```{r, echo=FALSE ,NAICS_TABLE and database}
+NAICS_CODE <- H1b_df %>%
+  select(NAICS_CODE) %>%
+  unique()
+
+NAICS_CODE$NID <- seq.int(nrow(NAICS_CODE))
+ 
+dbSendQuery(conn = mydb, "CREATE TABLE NAICS_CODE(
+            NID INTEGER PRIMARY KEY,
+            NAICS_CODE INTEGER,
+            WITHOUT ROWID)"
+            )
+dbWriteTable(mydb,'NAICS_CODE', NAICS_CODE, append = TRUE)
+
+
+```
+
+
+```{r,echo=FALSE,warning=FALSE, Creating EMPLOYER  And database}
+H1b_df%>%
+  select(EMPLOYER_NAME,
+         EMPLOYER_ADDRESS,
+         EMPLOYER_CITY,
+         EMPLOYER_STATE,
+         EMPLOYER_POSTAL_CODE)%>%
+  unique()%>%
+  unite(EMID,
+        EMPLOYER_NAME,
+        EMPLOYER_ADDRESS,
+        EMPLOYER_CITY,
+        EMPLOYER_STATE,
+        EMPLOYER_POSTAL_CODE,
+        sep ="",
+        remove=FALSE) %>%
+  unique()->employer
+
+dbSendQuery(conn = mydb,"CREATE TABLE EMPLOYER(
+            EMID TEXT PRIMARY KEY,
+            EMPLOYER_NAME TEXT,
+            EMPLOYER_ADDRESS TEXT,
+            EMPLOYER_CITY TEXT,
+            EMPLOYER_STATE TEXT,
+            EMPLOYER_POSTAL_CODE TEXT,
+            WITHOUT ROWID)")
+
+dbWriteTable(mydb,'EMPLOYER',employer, append=TRUE)
+```
+
+
+```{r,echo=FALSE , SOC_TABLE and database}
+
+# The Soc Code and SOc Names that are available in the 2010 index are somehow not complete on the government website, to make it devoid of any code that is missing, I compare the H-1B dataframe to the soc code data dataframe and make a dataframe that is complete.
+
+SOC <- data.frame(read_excel("~/Documents/Northeastern_University/DA5020/Project/soc_2010_alphabetical_index.xls", skip = 5, col_types = NULL))
+
+colnames(SOC) <- c("SOC_NAME","SOC_CODE")
+
+a <- H1b_df %>%
+  select(SOC_CODE) %>%
+  unique()
+
+b <- data.frame(SOC$SOC_CODE)
+
+require(sqldf)
+
+aNotInb <- sqldf('SELECT * FROM a EXCEPT SELECT * FROM b')
+
+first <- H1b_df[match(a$SOC_CODE,H1b_df$SOC_CODE),]
+
+second <- first %>%
+  select(SOC_NAME,
+         SOC_CODE)
+
+third <- rbind(SOC,second)
+third$SOC_NAME <- toupper(third$SOC_NAME)
+ third <- third %>% unique()
+fourth  <- third
+fourth$SOC_NAME[is.na(fourth$SOC_NAME)] <- "NOT AVAILABLE"
+fourth$SOC_NAME <- gsub("[`,./]","",fourth$SOC_NAME)
+fourth <- fourth %>% unique()
+SOC <- fourth
+rm(a,b,first,second,third,fourth,a1NotIna2)
+CODE <- data.frame(unique(SOC$SOC_CODE))
+CODE$ID <- seq.int(nrow(CODE))
+
+colnames(CODE) <- c("SOC_CODE","SOC_CODE_ID")
+NAME <- data.frame(unique(SOC$SOC_NAME))
+NAME$ID <- seq.int(nrow(NAME))
+colnames(NAME) <- c("SOC_NAME","SOC_NAME_ID")
+
+
+soc <- SOC %>%
+  left_join(CODE, by = 'SOC_CODE') %>%
+  select(SOC_NAME,
+         SOC_CODE_ID)
+
+soc <- soc %>%
+  left_join(NAME, by = 'SOC_NAME') %>%
+  select(SOC_NAME_ID,
+         SOC_CODE_ID)
+soc$SOC_ID <- seq.int(nrow(soc))
+
+dbSendQuery(conn = mydb, "CREATE TABLE SOC_CODE(
+            SOC_CODE TEXT,
+            SOC_CODE_ID INTEGER PRIMARY KEY,
+            WITHOUT ROWID)"
+            )
+
+dbWriteTable(conn = mydb, 'SOC_CODE',CODE, append = TRUE)
+
+
+dbSendQuery(conn = mydb, "CREATE TABLE SOC_NAME(
+            SOC_NAME TEXT,
+            SOC_NAME_ID INTEGER PRIMARY KEY,
+            WITHOUR ROWID)"
+            )
+
+dbWriteTable(conn = mydb, 'SOC_NAME',NAME, append = TRUE)
+
+dbSendQuery(conn = mydb, "CREATE TABLE SOC(
+            SOC_ID INTEGER PRIMARY KEY,
+            SOC_CODE_ID INTEGER,
+            SOC_NAME_ID INTEGER,
+            WITHOUT ROWID,
+            FOREIGN KEY (SOC_CODE_ID) REFERENCES SOC_CODE(SOC_CODE_ID),
+            FOREIGN KEY (SOC_NAME_ID) REFERENCES SOC_NAME(SOC_NAME_ID))"
+            )
+
+dbWriteTable(conn = mydb,'SOC',soc, append = TRUE)
+
+```
+
+
+```{r,echo=FALSE , Worksite table and database}
+
+Worksite <- H1b_df %>%
+  select(WORKSITE_CITY,
+         WORKSITE_STATE) %>%
+  unique()
+
+Worksite <- Worksite %>%
+  select(WORKSITE_CITY,
+         WORKSITE_STATE) %>%
+  unite(WKID,
+        WORKSITE_CITY,
+        WORKSITE_STATE,
+        sep = "",
+        remove = FALSE)
+
+dbSendQuery(conn = mydb, "CREATE TABLE WORKSITE(
+            WKID TEXT PRIMARY KEY,
+            WORKSITE_CITY TEXT,
+            WORKSITE_STATE TEXT,
+            WITHOUT ROWID)"
+            )
+
+
+dbWriteTable(mydb,'WORKSITE',Worksite, append = TRUE)
+```
+
+
+```{r, echo=FALSE,warning=FALSE,Case Data Table and database}
+case <- H1b_df %>%
+  select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMPLOYER_NAME,
+        EMPLOYER_ADDRESS,
+        EMPLOYER_CITY,
+        EMPLOYER_STATE,
+        EMPLOYER_POSTAL_CODE,
+         JOB_TITLE,
+         SOC_CODE,
+         NAICS_CODE,
+         FULL_TIME_POSITION,
+         PREVAILING_WAGE,
+         WORKSITE_CITY,
+         WORKSITE_STATE,
+         Year)
+
+
+case <- case %>%
+  select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMPLOYER_NAME,
+        EMPLOYER_ADDRESS,
+        EMPLOYER_CITY,
+        EMPLOYER_STATE,
+        EMPLOYER_POSTAL_CODE,
+         JOB_TITLE,
+         SOC_CODE,
+         NAICS_CODE,
+         PREVAILING_WAGE,
+         FULL_TIME_POSITION,
+         WORKSITE_CITY,
+         WORKSITE_STATE,
+         Year
+         ) %>%
+  unite(EMID,
+        EMPLOYER_NAME,
+        EMPLOYER_ADDRESS,
+        EMPLOYER_CITY,
+        EMPLOYER_STATE,
+        EMPLOYER_POSTAL_CODE,
+        sep ="",
+        remove=FALSE)
+
+
+
+case <- case %>%
+  left_join(CODE, "SOC_CODE"="SOC_CODE") %>%
+  select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMID,
+         JOB_TITLE,
+         SOC_CODE_ID,
+         NAICS_CODE,
+         PREVAILING_WAGE,
+         FULL_TIME_POSITION,
+         WORKSITE_CITY,
+         WORKSITE_STATE,
+         Year
+         )
+
+
+case <- case %>%
+  left_join(NAICS_CODE, "NAICS_CODE" = "NAICS_CODE") %>%
+  select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMID,
+         JOB_TITLE,
+         SOC_CODE_ID,
+         NID,
+         PREVAILING_WAGE,
+         FULL_TIME_POSITION,
+         WORKSITE_CITY,
+         WORKSITE_STATE,
+         Year
+         )
+
+
+case <- case %>%
+   select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMID,
+         JOB_TITLE,
+         SOC_CODE_ID,
+         NID,
+         PREVAILING_WAGE,
+         FULL_TIME_POSITION,
+         WORKSITE_CITY,
+         WORKSITE_STATE,
+         Year) %>%
+  unite(WKID,
+        WORKSITE_CITY,
+        WORKSITE_STATE,
+        sep ="",
+        remove = FALSE) %>%
+  select(CASE_NUMBER,
+         CASE_STATUS,
+         CASE_SUBMITTED,
+         DECISION_DATE,
+         EMID,
+         JOB_TITLE,
+         SOC_CODE_ID,
+         NID,
+         PREVAILING_WAGE,
+         FULL_TIME_POSITION,
+         WKID,
+         Year)
+
+
+  
+dbSendQuery(conn = mydb, "CREATE TABLE MAIN(
+            CASE_NUMBER INTEGER,
+            CASE_STATUS TEXT,
+            CASE_SUBMITTED TEXT,
+            DECISION_DATE TEXT,
+            EMID TEXT,
+            JOB_TITLE TEXT,
+            SOC_CODE_ID INTEGER,
+            NID INTEGER,
+            PREVAILING_WAGE INTEGER,
+            FULL_TIME_POSITION TEXT,
+            WKID TEXT,
+            Year INTEGER,
+            FOREIGN KEY (EMID) REFERENCES EMPLOYER (EMID),
+            FOREIGN KEY (SOC_CODE_ID) REFERENCES SOC (SOC_ID),
+            FOREIGN KEY (NID) REFERENCES NAICS_CODE (NID),
+            FOREIGN KEY (WKID) REFERENCES WORKSITE (WKID)
+            )"
+            )
+
+
+dbWriteTable(mydb,'MAIN', case , append = TRUE)
+
+
+
+```
+
+
+```{r, setting up dplyr database}
+gdb <- src_memdb()
+gdb <- src_sqlite("H1b", create = TRUE)
+Employer <- tbl(gdb,"EMPLOYER")
+NAICS_CODE <- tbl(gdb,"NAICS_CODE")
+SOC_CODE <- tbl(gdb,"SOC_CODE")
+SOC_NAME <- tbl(gdb,"SOC_NAME")
+SOC <- tbl(gdb,"SOC")
+Worksite <- tbl(gdb,"Worksite")
+
+Main <- tbl(gdb,"MAIN")
+```
+
+
+```{r}
+Main %>%
+  group_by(FULL_TIME_POSITION)%>%
+  count()
+```
+
+
+```{r}
+
+# The function takes a job title as input and returs some key information on the title.
+# Input : job title
+# returns : a list of information which consists of 
+#             1) A list of employers with maximum applications in descending order limited to 15 observations
+#             2) A list of worksite state where maximum applications where certified to work, limited to 15 observations
+#             3) A plot of the prevailing wages selected states.
+Job.Title <- function(job){
+  job <- toupper(job)
+Main %>%
+    filter(JOB_TITLE == job) %>%
+    left_join(Employer, "EMID") %>%
+    left_join(Worksite, "WKID") -> a 
+    a %>% 
+      select(CASE_STATUS,
+             EMPLOYER_NAME,
+             PREVAILING_WAGE,
+             WORKSITE_CITY,
+             WORKSITE_STATE,
+             Year,
+             FULL_TIME_POSITION) %>%
+      collect() %>%
+      data.frame() ->a
+    
+    a %>%
+      select(EMPLOYER_NAME)%>%
+      table()%>%
+      data.frame()%>%
+      arrange(desc(Freq))%>%
+      head(n=15)-> a1
+    
+    a %>%
+      filter(CASE_STATUS =="CERTIFIED")%>%
+      select(WORKSITE_STATE) %>%
+      table()%>%
+      data.frame()%>%
+      arrange(desc(Freq))%>%
+      head(n=15)-> a2
+    
+    a %>%
+      filter(WORKSITE_STATE =="MA"|
+               WORKSITE_STATE =="NY"|
+               WORKSITE_STATE =="CA"|
+               WORKSITE_STATE =="TX"|
+               WORKSITE_STATE =="IL"|
+               WORKSITE_STATE =="MI"|
+               WORKSITE_STATE =="WA") ->a3
+    g <- ggplot(a3,aes(y=PREVAILING_WAGE,x=WORKSITE_STATE, fill=factor(Year)))+
+      xlab("Worksite States")+
+      ylab("Prevaling Wage (USD)")
+    g <- g +geom_boxplot() + scale_fill_discrete(name = "Year")
+    g
+    
+    newList <- list(a1,a2,g)
+    
+return(newList)
+  
+  
+}
+
+```
+
+
+```{r results = 'asis', echo=FALSE, warning= FALSE}
+Job.Title("DATA SCIENTIST")
+
+```
+
+```{r,echo=FALSE}
+
+Main%>%
+  left_join(Employer,"EMID")%>%
+  left_join(Worksite,"WKID")%>%
+  filter(JOB_TITLE =="INDUSTRIAL ENGINEER"|
+           JOB_TITLE =="PROCESS ENGINEER"|
+           JOB_TITLE =="PROJECT ENGINEER"|
+           JOB_TITLE =="SUPPLY CHAIN ANALYST"|
+           JOB_TITLE =="MANUFACTURING ENGINEER")%>% 
+  select(EMPLOYER_NAME,
+         CASE_STATUS,
+         WORKSITE_STATE,
+         PREVAILING_WAGE,
+         JOB_TITLE,
+         Year)%>%
+  filter(PREVAILING_WAGE <250999)%>%
+  collect() ->a
+
+new_lines_adder = function(test.string, interval){
+  #length of str
+  string.length = nchar(test.string)
+  #split by N char intervals
+  split.starts = seq(1,string.length,interval)
+  split.ends = c(split.starts[-1]-1,nchar(test.string))
+  #split it
+  test.string = substring(test.string, split.starts, split.ends)
+  #put it back together with newlines
+  test.string = paste0(test.string,collapse = "\n")
+  return(test.string)
+}
+
+#a user-level wrapper that also works on character vectors, data.frames, matrices and factors
+add_newlines = function(x, interval) {
+  if (class(x) == "data.frame" | class(x) == "matrix" | class(x) == "factor") {
+    x = as.vector(x)
+  }
+
+  if (length(x) == 1) {
+    return(new_lines_adder(x, interval))
+  } else {
+    t = sapply(x, FUN = new_lines_adder, interval = interval) #apply splitter to each
+    names(t) = NULL #remove names
+    return(t)
+  }
+}
+
+ggplot(a,aes(x=JOB_TITLE,y=PREVAILING_WAGE,fill=factor(Year))) + 
+  geom_boxplot() + 
+  xlab("Job Titles") + 
+  ylab("Prevailing Wage (USD)") + 
+  scale_fill_discrete(name = "Year") 
+  
+
+a %>%
+  select(WORKSITE_STATE)%>%
+  table()%>%
+  data.frame()%>%
+  arrange(desc(Freq)) %>%
+  head(n=15)->b
+
+ggplot(b,aes(x=reorder(.,Freq),y=Freq)) +
+  geom_bar(stat = "Identity",aes(fill=.)) +
+  coord_flip() +
+  ylab("Number of Applications") +
+  xlab("States") 
+
+Main %>%
+  left_join(Employer,"EMID")%>%
+  left_join(Worksite,"WKID")%>%
+  filter(JOB_TITLE =="INDUSTRIAL ENGINEER"|
+           JOB_TITLE =="PROCESS ENGINEER"|
+           JOB_TITLE =="PROJECT ENGINEER"|
+           JOB_TITLE =="SUPPLY CHAIN ANALYST"|
+           JOB_TITLE =="MANUFACTURING ENGINEER")%>%
+  filter(PREVAILING_WAGE > 65000)%>%
+  filter(CASE_STATUS =="CERTIFIED" |
+           CASE_STATUS =="CERTIFIED-WITHDRAWN")%>%
+  select(EMPLOYER_NAME)%>%
+  collect%>%
+  table()%>%
+  data.frame()%>%
+  arrange(desc(Freq))%>%
+  head(n=15)->c
+colnames(c)<- c("Employer Name","Freq")
+knitr::kable(c, caption = "Number of Successfull Applications per Employer")
+
+
+```
