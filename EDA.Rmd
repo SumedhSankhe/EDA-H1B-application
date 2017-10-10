@@ -22,6 +22,7 @@ library(gdata)
 library(RSQLite)
 library(tidyr)
 library(ggplot2)
+library(dbplyr)
 ```
 
 
@@ -42,7 +43,6 @@ Y13 <- read_csv("~/Documents/Northeastern_University/DA5020_Collecting_Storing_R
 The columns name have slight variations for the last four year, except for the year 2013 which has has lot of changes to the column names, also the order of the columns changes year to year, hence before combining them to one data-frame I decided to standardize the column names and roughly decide on the columns of interest. The columns of interest may increase or decrease as I proceed ahead with the data exploration.
 
 ```{r}
-#need a better way to clean them
 df17 <- data.frame(subset(Y17, select = c(CASE_NUMBER,
                                           CASE_STATUS,
                                           CASE_SUBMITTED,
