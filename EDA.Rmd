@@ -963,33 +963,6 @@ Main%>%
   filter(PREVAILING_WAGE <250999)%>%
   collect() ->a
 
-new_lines_adder = function(test.string, interval){
-  #length of str
-  string.length = nchar(test.string)
-  #split by N char intervals
-  split.starts = seq(1,string.length,interval)
-  split.ends = c(split.starts[-1]-1,nchar(test.string))
-  #split it
-  test.string = substring(test.string, split.starts, split.ends)
-  #put it back together with newlines
-  test.string = paste0(test.string,collapse = "\n")
-  return(test.string)
-}
-
-#a user-level wrapper that also works on character vectors, data.frames, matrices and factors
-add_newlines = function(x, interval) {
-  if (class(x) == "data.frame" | class(x) == "matrix" | class(x) == "factor") {
-    x = as.vector(x)
-  }
-
-  if (length(x) == 1) {
-    return(new_lines_adder(x, interval))
-  } else {
-    t = sapply(x, FUN = new_lines_adder, interval = interval) #apply splitter to each
-    names(t) = NULL #remove names
-    return(t)
-  }
-}
 
 ggplot(a,aes(x=JOB_TITLE,y=PREVAILING_WAGE,fill=factor(Year))) + 
   geom_boxplot() + 
