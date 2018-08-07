@@ -54,17 +54,20 @@ readTransform <- function(file){
   
   data[, year := gsub(".csv","",paste0(substr(Sys.Date(), 1, 2), gsub("_.*", "", gsub(".*FY", "", file))))]
   data <- data[EMPLOYER_STATE %in% state.abb]
+  
   cat(" Standardizing pay \n")
   data[,PREVAILING_WAGE := ifelse(PW_UNIT_OF_PAY == "Year", PREVAILING_WAGE,
-                                  ifelse(PW_UNIT_OF_PAY == "Hour", 2080*PREVAILING_WAGE,
-                                         ifelse(PW_UNIT_OF_PAY == "Week", 52*PREVAILING_WAGE,
-                                                ifelse(PW_UNIT_OF_PAY == "Month", 12*PREVAILING_WAGE,
-                                                       26*PREVAILING_WAGE))))]
+                                  ifelse(PW_UNIT_OF_PAY == "Hour", 2080 * PREVAILING_WAGE,
+                                         ifelse(PW_UNIT_OF_PAY == "Week", 52 * PREVAILING_WAGE,
+                                                ifelse(PW_UNIT_OF_PAY == "Month", 12 * PREVAILING_WAGE,
+                                                       26 * PREVAILING_WAGE))))]
+  
   cat(" Standardizing dates \n")
   data[,':='(CASE_SUBMITTED = as.Date(CASE_SUBMITTED, "%m/%d/%Y"),
-             DECISION_DATE = as.Date(DECISION_DATE,"%m/%d/%Y"),
+             DECISION_DATE = as.Date(DECISION_DATE, "%m/%d/%Y"),
              EMPLOYMENT_START_DATE = as.Date(EMPLOYMENT_START_DATE, "%m/%d/%Y"),
              EMPLOYMENT_END_DATE = as.Date(EMPLOYMENT_END_DATE, "%m/%d/%Y"))]
+  
   cat(" Completed",f,"in",difftime(Sys.time(),st, units = "secs"),"seconds","\n\n\n")
   return(data)
 }
