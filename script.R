@@ -5,6 +5,12 @@ path <- getwd()
 datFiles <- paste0(path,"/",list.files(path, "FY"))
 
 readTransform <- function(file){
+  # This function reads in an excel or a csv file and transforms it to a required format
+  # Args:
+  #  file : a file path to an excel or a csv file
+  #
+  # Returns: a transformed data.table of data
+  
   st <- Sys.time()
   f <- gsub(".*\\/","",file)
   cat(" Reading",f,"....")
