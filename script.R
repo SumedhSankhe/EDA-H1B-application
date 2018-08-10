@@ -85,8 +85,31 @@ readTransform <- function(file){
              EMPLOYMENT_END_DATE = as.Date(EMPLOYMENT_END_DATE, "%m/%d/%Y"))]
   
   cat(" Completed",f,"in",difftime(Sys.time(),st, units = "secs"),"seconds","\n\n\n")
+  saveRDS(dataT,paste0("CombinedH1b ",Sys.Date(),".rds"))
   return(dataT)
 }
 
+data <- rbindlist(lapply(datFiles, readTransform))
 
-x <- rbindlist(lapply(datFiles, readTransform))
+
+getLocation <- function(dat){
+  library(XML)
+  dat[,loc := paste(EMPLOYER_ADDRESS,EMPLOYER_CITY, EMPLOYER_STATE, EMPLOYER_POSTAL_CODE, sep = ", ")]
+  loc <- x[,unique(loc)]
+  
+  y <- rbindlist(lapply(seq(1:length(loc)), function(x){
+    # cat(x,"of",length(loc),"\n")
+    addr <- loc[x]
+    url = paste('http://maps.google.com/maps/api/geocode/xml?address=', addr,'&sensor=false',sep='')  # construct the URL
+    doc = xmlTreeParse(url) 
+    root = xmlRoot(doc)
+    lat = xmlValue(root[['result']][['geometry']][['location']][['lat']]) 
+    long = xmlValue(root[['result']][['geometry']][['location']][['lng']])
+    cat(cbind(addr,lat,long))
+    Sys.sleep(0.1)
+    return(cbind(addr,lat,long))
+  }))
+  
+  addr <- '6th Main Rd, New Thippasandra, Bengaluru, Karnataka'  # set your address here
+  
+}
