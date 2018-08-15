@@ -4,3 +4,5 @@
 .Ruserdata
 *.xlsx
 *.csv
+
+*.rds
