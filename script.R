@@ -133,7 +133,16 @@ data <- merge(data, cities[,.(EMPLOYER_CITY, EMPLOYER_STATE,lat,lng)],
 
 noGPS <- data[is.na(lat) | is.na(lng) | is.na(EMPLOYER_CITY)]
 toGetGPS <- noGPS[,unique(paste0(EMPLOYER_ADDRESS," ",EMPLOYER_STATE))]
-geoCoded <- rbindlist(lapply(toGetGPS, function(x){
-  dt <- ggmap::geocode(x,"more")
-}))
+
+geoCoded <- lapply(toGetGPS[51:61], function(x){
+  dt <- data.table(ggmap::geocode(x,"more"))
+  if(sum(is.na(dt)) < 1){
+    dt <- dt[,.(lon,lat,administrative_area_level_1)]
+    setnames(dt, "administrative_area_level_1", "EMPLOYER_CITY")
+    return(dt)
+  } else{
+    dt[,':='(lon = NA_real_, lat = NA_real_, EMPLOYER_CITY = NA_real_)]
+  }
+  
+})
 
