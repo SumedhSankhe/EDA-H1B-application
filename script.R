@@ -126,23 +126,37 @@ getCities <- function(){
 }
 
 cities <- getCities()
+# Merge the city data with the h1b data 
 setnames(cities, c("city", "state_id"), c("EMPLOYER_CITY", "EMPLOYER_STATE"))
 cities[,':='(EMPLOYER_CITY = toupper(EMPLOYER_CITY), EMPLOYER_STATE = toupper(EMPLOYER_STATE))]
 data <- merge(data, cities[,.(EMPLOYER_CITY, EMPLOYER_STATE,lat,lng)],
               by = c("EMPLOYER_CITY", "EMPLOYER_STATE"), all.x = T)
 
-noGPS <- data[is.na(lat) | is.na(lng) | is.na(EMPLOYER_CITY)]
-toGetGPS <- noGPS[,unique(paste0(EMPLOYER_ADDRESS," ",EMPLOYER_STATE))]
+# Filter data which have gps data
+cleanData <- data[!is.na(lat) & !is.na(lng) & !is.na(EMPLOYER_CITY)]
 
-geoCoded <- lapply(toGetGPS[51:61], function(x){
-  dt <- data.table(ggmap::geocode(x,"more"))
-  if(sum(is.na(dt)) < 1){
-    dt <- dt[,.(lon,lat,administrative_area_level_1)]
-    setnames(dt, "administrative_area_level_1", "EMPLOYER_CITY")
-    return(dt)
-  } else{
-    dt[,':='(lon = NA_real_, lat = NA_real_, EMPLOYER_CITY = NA_real_)]
-  }
-  
-})
+# Filter data without gps coordiantes
+noGPS <- data[is.na(lat) | is.na(lng) | is.na(EMPLOYER_CITY)]
+# Get unique addresses in the data
+toGetGPS <- noGPS[,unique(paste0(EMPLOYER_ADDRESS," ",EMPLOYER_STATE))]
+# Split the addresses into chunks
+chunks <- split(toGetGPS,seq(1,ceiling(length(noGPS)/100)))
+
+# Gets the GPS co-ordinates for the given set of addresses
+geoCoded <- rbindlist(lapply(chunks, function(chunk){
+  loc <- rbindlist(lapply(chunk, function(x){
+    # use the google api from the ggmap package with all the details
+    dt <- data.table(ggmap::geocode(x,"more"))
+    if(sum(is.na(dt)) < 1){
+      # extract the required columns from the data if there are no Na
+      dt <- dt[,.(lon,lat,administrative_area_level_1)]
+      setnames(dt, "administrative_area_level_1", "EMPLOYER_CITY")
+      return(dt)
+    } else{
+      # if NA's are found then create NA columns for the three columns
+      dt[,':='(lon = NA_real_, lat = NA_real_, EMPLOYER_CITY = NA_real_)]
+    }
+  }))
+  return(loc)
+}))
 
