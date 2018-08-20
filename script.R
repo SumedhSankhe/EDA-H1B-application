@@ -110,7 +110,7 @@ readTransform <- function(file){
   
   cat(" Completed",f,"in",difftime(Sys.time(),st, units = "secs"),"seconds","\n\n\n")
   # Save formatted data as rds for easier read and archive
-  saveRDS(dataT,paste0("CombinedH1b ",Sys.Date(),".rds"))
+  saveRDS(dataT,paste0(gsub(".csv","",f)," ",Sys.Date(),".rds"))
   return(dataT)
 }
 
@@ -137,26 +137,8 @@ cleanData <- data[!is.na(lat) & !is.na(lng) & !is.na(EMPLOYER_CITY)]
 
 # Filter data without gps coordiantes
 noGPS <- data[is.na(lat) | is.na(lng) | is.na(EMPLOYER_CITY)]
+setnames(data, "lng","lon")
 # Get unique addresses in the data
-toGetGPS <- noGPS[,unique(paste0(EMPLOYER_ADDRESS," ",EMPLOYER_STATE))]
-# Split the addresses into chunks
-chunks <- split(toGetGPS,seq(1,ceiling(length(noGPS)/100)))
-
-# Gets the GPS co-ordinates for the given set of addresses
-geoCoded <- rbindlist(lapply(chunks, function(chunk){
-  loc <- rbindlist(lapply(chunk, function(x){
-    # use the google api from the ggmap package with all the details
-    dt <- data.table(ggmap::geocode(x,"more"))
-    if(sum(is.na(dt)) < 1){
-      # extract the required columns from the data if there are no Na
-      dt <- dt[,.(lon,lat,administrative_area_level_1)]
-      setnames(dt, "administrative_area_level_1", "EMPLOYER_CITY")
-      return(dt)
-    } else{
-      # if NA's are found then create NA columns for the three columns
-      dt[,':='(lon = NA_real_, lat = NA_real_, EMPLOYER_CITY = NA_real_)]
-    }
-  }))
-  return(loc)
-}))
-
+noGPS[,address := paste0(EMPLOYER_ADDRESS," ",EMPLOYER_STATE)]
+rdsData <- list(h1dData = cleanData, reqGPS = noGPS)
+saveRDS(rdsData, file = "h1bArchive.rds")
